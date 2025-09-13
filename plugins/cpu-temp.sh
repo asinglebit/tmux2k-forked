@@ -8,7 +8,7 @@ source "$current_dir/../lib/utils.sh"
 get_cpu_temp() {
 	case $(uname -s) in
 	Linux)
-		temperature=$(LC_NUMERIC=en_US.UTF-8 sensors | grep -oP 'Tctl:.*?\+\K[0-9.]+')
+		temperature=$(sensors | awk '/Package id 0/ {gsub(/\+|°C/,"",$4); print $4}')
 		normalize_padding "$temperature"
 		;;
 
