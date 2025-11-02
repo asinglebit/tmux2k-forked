@@ -153,18 +153,19 @@ status_bar() {
 }
 
 window_list() {
+    local dot_icon="○" 
+	local dot_icon_selected="●"
 
-    # No extra spaces
-    spacer=""
-
-    # Current window
+    # Selected (current) window: brighter dot
     tmux set-window-option -g window-status-current-format \
-        "#[fg=${grey_800},bg=${grey_900}]${r_sep}#[bg=${grey_800}]#[fg=${grey_400},bg=${grey_800}]${window_list_format}#[fg=${grey_800},bg=${grey_900}]${l_sep}"
+			"#[fg=${grey_400},bg=${grey_900}] ${dot_icon_selected} "
 
-    # Inactive windows
+    # Inactive windows: dimmer dot
     tmux set-window-option -g window-status-format \
-        "#[fg=${grey_850},bg=${grey_900}]${r_sep}#[bg=${grey_850}]#[fg=${grey_600},bg=${grey_850}]${window_list_format}#[fg=${grey_850},bg=${grey_900}]${l_sep}"
+        "#[fg=${grey_600},bg=${grey_900}] ${dot_icon} "
 
+    tmux set-option -g window-status-separator ""
+    tmux set-option -g status-justify centre
 }
 
 main() {
