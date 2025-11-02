@@ -51,12 +51,12 @@ get_plugin_colors() {
 set_theme() {
     grey_900='#1E1E1E'
     grey_850='#282828'
-    grey_800='#353535'
-    grey_700='#505050'
-    grey_600='#616161'
-    grey_400='#9E9E9E'
-    grey_300='#BDBDBD'
-    grey_200='#E0E0E0'
+    grey_800='#2F3B35'
+    grey_700='#43514A'
+    grey_600='#526554'
+    grey_400='#85A291'
+    grey_300='#A5C1AD'
+    grey_200='#C9E6D3'
 }
 
 set_options() {
