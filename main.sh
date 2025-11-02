@@ -9,10 +9,10 @@ refresh_rate=$(get_tmux_option "@tmux2k-refresh-rate" 60)
 show_powerline=$(get_tmux_option "@tmux2k-show-powerline" true)
 l_sep=$(get_tmux_option "@tmux2k-left-sep" )
 r_sep=$(get_tmux_option "@tmux2k-right-sep" )
-wl_sep=$(get_tmux_option "@tmux2k-window-list-left-sep" )
-wr_sep=$(get_tmux_option "@tmux2k-window-list-right-sep" )
+wl_sep=$(get_tmux_option "@tmux2k-window-list-left-sep" )
+wr_sep=$(get_tmux_option "@tmux2k-window-list-right-sep" )
 window_list_alignment=$(get_tmux_option "@tmux2k-window-list-alignment" 'absolute-centre')
-window_list_format=$(get_tmux_option "@tmux2k-window-list-format" '#I')
+window_list_format=$(get_tmux_option "@tmux2k-window-list-format" '⦁')
 window_list_flags=$(get_tmux_option "@tmux2k-window-list-flags" true)
 window_list_compact=$(get_tmux_option "@tmux2k-window-list-compact" false)
 IFS=' ' read -r -a lplugins <<<"$(get_tmux_option '@tmux2k-left-plugins' 'session git cwd')"
@@ -51,12 +51,12 @@ get_plugin_colors() {
 set_theme() {
     grey_900='#1E1E1E'
     grey_850='#282828'
-    grey_800='#2F3B35'
-    grey_700='#43514A'
-    grey_600='#526554'
-    grey_400='#85A291'
-    grey_300='#A5C1AD'
-    grey_200='#C9E6D3'
+    grey_800='#353535'
+    grey_700='#505050'
+    grey_600='#616161'
+    grey_400='#9E9E9E'
+    grey_300='#BDBDBD'
+    grey_200='#E0E0E0'
 }
 
 set_options() {
@@ -153,19 +153,18 @@ status_bar() {
 }
 
 window_list() {
-    local dot_icon="○" 
-	local dot_icon_selected="●"
 
-    # Selected (current) window: brighter dot
+    # No extra spaces
+    spacer=""
+
+    # Current window
     tmux set-window-option -g window-status-current-format \
-			"#[fg=${grey_400},bg=${grey_900}] ${dot_icon_selected} "
+        "#[fg=${grey_900},bg=${grey_900}]${wr_sep}#[bg=${grey_900}]#[fg=${grey_400},bg=${grey_900}]${window_list_format}#[fg=${grey_900},bg=${grey_900}]${wl_sep}"
 
-    # Inactive windows: dimmer dot
+    # Inactive windows
     tmux set-window-option -g window-status-format \
-        "#[fg=${grey_600},bg=${grey_900}] ${dot_icon} "
+        "#[fg=${grey_900},bg=${grey_900}]${wr_sep}#[bg=${grey_900}]#[fg=${grey_600},bg=${grey_900}]${window_list_format}#[fg=${grey_900},bg=${grey_900}]${wl_sep}"
 
-    tmux set-option -g window-status-separator ""
-    tmux set-option -g status-justify centre
 }
 
 main() {
@@ -177,3 +176,4 @@ main() {
 }
 
 main
+
