@@ -75,29 +75,25 @@ set_options() {
     tmux set-window-option -g window-status-current-style "bold"
 }
 
-status_bar() {
-    side=$1
-    if [ "$side" == "left" ]; then
-        plugins=("${lplugins[@]}")
-    else
-        plugins=("${rplugins[@]}")
-    fi
+status_bar_left() {
+    local plugins=("${lplugins[@]}")
+    local pl_bg
 
-    for plugin_index in "${!plugins[@]}"; do
-        plugin="${plugins[$plugin_index]}"
+    for i in "${!plugins[@]}"; do
+        local plugin="${plugins[$i]}"
         IFS=' ' read -r -a colors <<<"$(get_plugin_colors "$plugin")"
-        script="#($current_dir/plugins/$plugin.sh)"
+        local script="#($current_dir/plugins/$plugin.sh)"
 
         # LEFT SIDE: next plugin colors for powerline
-        if [ "$side" == "left" ] && $show_powerline; then
-            next_plugin=${plugins[$((plugin_index + 1))]}
+        if $show_powerline && [ $i -lt $((${#plugins[@]}-1)) ]; then
+            next_plugin="${plugins[$((i+1))]}"
             IFS=' ' read -r -a next_colors <<<"$(get_plugin_colors "$next_plugin")"
-            pl_bg=${!next_colors[0]:-$bg_main}
+            pl_bg=${!next_colors[0]}
         fi
 
         # Separator colors
-        if [ "$side" == "left" ] && $show_powerline; then
-            if [ $plugin_index -eq $((${#plugins[@]}-1)) ]; then
+        if $show_powerline; then
+            if [ $i -eq $((${#plugins[@]}-1)) ]; then
                 l_sep_fg=$grey_800
                 l_sep_bg=$grey_900
             else
@@ -106,8 +102,45 @@ status_bar() {
             fi
         fi
 
-        if [ "$side" == "right" ] && $show_powerline; then
-            if [ $plugin_index -eq 0 ]; then
+        # Override colors for leftmost plugin
+        bg_override="${!colors[0]}"
+        fg_override="${!colors[1]}"
+        if [ $i -eq 0 ]; then
+            bg_override=$grey_700
+            fg_override=$grey_300
+            l_sep_fg=$grey_700
+        fi
+
+        # Apply to tmux status-left
+        if [ "$plugin" == "session" ]; then
+            tmux set-option -ga status-left \
+                "#[fg=${fg_override},bg=${bg_override}]#{?client_prefix,#[bg=${prefix_highlight}],} $script #[fg=${l_sep_fg},bg=${l_sep_bg}]${l_sep}"
+        else
+            tmux set-option -ga status-left \
+                "#[fg=${fg_override},bg=${bg_override}] $script #[fg=${l_sep_fg},bg=${l_sep_bg}]${l_sep}"
+        fi
+    done
+}
+
+status_bar_right() {
+    local plugins=("${rplugins[@]}")
+    local pl_bg
+
+    for i in "${!plugins[@]}"; do
+        local plugin="${plugins[$i]}"
+        IFS=' ' read -r -a colors <<<"$(get_plugin_colors "$plugin")"
+        local script="#($current_dir/plugins/$plugin.sh)"
+
+        # RIGHT SIDE: previous plugin colors for powerline
+        if $show_powerline && [ $i -gt 0 ]; then
+            prev_plugin="${plugins[$((i-1))]}"
+            IFS=' ' read -r -a prev_colors <<<"$(get_plugin_colors "$prev_plugin")"
+            pl_bg=${!prev_colors[0]}
+        fi
+
+        # Separator colors
+        if $show_powerline; then
+            if [ $i -eq 0 ]; then
                 r_sep_fg=$grey_800
                 r_sep_bg=$grey_900
             else
@@ -116,63 +149,45 @@ status_bar() {
             fi
         fi
 
-        # OVERRIDE background AND separator colors for leftmost/rightmost
-        bg_override="${!colors[0]}" # default bg
-        fg_override="${!colors[1]}" # default bg
-        if [ "$side" == "left" ] && [ $plugin_index -eq 0 ]; then
-            bg_override=$grey_700   # leftmost plugin bg
-            fg_override=$grey_300   # leftmost plugin bg
-            l_sep_fg=$grey_700      # leftmost separator fg
-        fi
-        if [ "$side" == "right" ] && [ $plugin_index -eq $((${#plugins[@]}-1)) ]; then
-            bg_override=$grey_700   # rightmost plugin bg
-            fg_override=$grey_300   # leftmost plugin bg
-            r_sep_fg=$grey_700      # rightmost separator fg
+        # Override colors for rightmost plugin
+        bg_override="${!colors[0]}"
+        fg_override="${!colors[1]}"
+        if [ $i -eq $((${#plugins[@]}-1)) ]; then
+            bg_override=$grey_700
+            fg_override=$grey_300
+            r_sep_fg=$grey_700
         fi
 
-        # Apply to tmux status
-        if [ "$side" == "left" ]; then
-            if [ "$plugin" == "session" ]; then
-                tmux set-option -ga status-left \
-                    "#[fg=${fg_override},bg=${bg_override}]#{?client_prefix,#[bg=${prefix_highlight}],} $script #[fg=${l_sep_fg},bg=${l_sep_bg}]${l_sep}"
-            else
-                tmux set-option -ga status-left \
-                    "#[fg=${fg_override},bg=${bg_override}] $script #[fg=${l_sep_fg},bg=${l_sep_bg}]${l_sep}"
-            fi
+        # Apply to tmux status-right
+        if [ "$plugin" == "session" ]; then
+            tmux set-option -ga status-right \
+                "#[fg=${r_sep_fg},bg=${r_sep_bg}]${r_sep}#[fg=${fg_override},bg=${bg_override}]#{?client_prefix,#[bg=${prefix_highlight}],} $script "
         else
-            if [ "$plugin" == "session" ]; then
-                tmux set-option -ga status-right \
-                    "#[fg=${r_sep_fg},bg=${r_sep_bg}]${r_sep}#[fg=${fg_override},bg=${bg_override}]#{?client_prefix,#[bg=${prefix_highlight}],} $script "
-            else
-                tmux set-option -ga status-right \
-                    "#[fg=${r_sep_fg},bg=${r_sep_bg}]${r_sep}#[fg=${fg_override},bg=${bg_override}] $script "
-            fi
-            pl_bg=${!colors[0]}
+            tmux set-option -ga status-right \
+                "#[fg=${r_sep_fg},bg=${r_sep_bg}]${r_sep}#[fg=${fg_override},bg=${bg_override}] $script "
         fi
+
+        pl_bg=${!colors[0]}
     done
 }
 
 window_list() {
-
-    # No extra spaces
-    spacer=""
-
     # Current window
     tmux set-window-option -g window-status-current-format \
-        "#[fg=${grey_900},bg=${grey_900}]${wr_sep}#[bg=${grey_900}]#[fg=${grey_400},bg=${grey_900}]${window_list_format}#[fg=${grey_900},bg=${grey_900}]${wl_sep}"
+        "#[fg=${grey_900},bg=${grey_900}]${wr_sep}#[bg=${grey_900}]#[fg=${grey_400},bg=${grey_900}] #I:#W #[fg=${grey_900},bg=${grey_900}]${wl_sep}"
 
     # Inactive windows
     tmux set-window-option -g window-status-format \
-        "#[fg=${grey_900},bg=${grey_900}]${wr_sep}#[bg=${grey_900}]#[fg=${grey_600},bg=${grey_900}]${window_list_format}#[fg=${grey_900},bg=${grey_900}]${wl_sep}"
-
+        "#[fg=${grey_900},bg=${grey_900}]${wr_sep}#[bg=${grey_900}]#[fg=${grey_600},bg=${grey_900}] #I:#W #[fg=${grey_900},bg=${grey_900}]${wl_sep}"
 }
+
 
 main() {
     set_theme
     set_options
-    status_bar "left"
+    status_bar_left
     window_list
-    status_bar "right"
+    status_bar_right
 }
 
 main
